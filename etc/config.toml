@@ -79,7 +79,7 @@ DefaultRoles = ["Standard"]
 
 [DB]
 # postgres: host=%s port=%s user=%s dbname=%s password=%s sslmode=%s
-DSN="root:1234@tcp(127.0.0.1:3306)/n9e_v6?charset=utf8mb4&parseTime=True&loc=Local&allowNativePasswords=true"
+DSN="root:aerohive@tcp(127.0.0.1:3306)/n9e_v6?charset=utf8mb4&parseTime=True&loc=Local&allowNativePasswords=true"
 # enable debug mode or not
 Debug = false
 # mysql postgres
@@ -118,11 +118,12 @@ IP = ""
 Interval = 1000
 EngineName = "default"
 
-# [Alert.Alerting]
+[Alert.Alerting]
 # NotifyConcurrency = 10
+TemplatesDir = "/Users/wpliang/private/code/nightingale/etc/template"
 
 [Center]
-MetricsYamlFile = "./etc/metrics.yaml"
+MetricsYamlFile = "../etc/metrics.yaml"
 I18NHeaderKey = "X-Language"
 
 [Center.AnonymousAccess]

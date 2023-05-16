@@ -88,7 +88,7 @@ func ListTpls(c *ctx.Context) (map[string]*template.Template, error) {
 }
 
 func InitNotifyConfig(c *ctx.Context, tplDir string) {
-	// init notify channel
+	// init notify channel 初始化通知媒介
 	cval, err := ConfigsGet(c, NOTIFYCHANNEL)
 	if err != nil {
 		logger.Errorf("failed to get notify contact config: %v", err)
@@ -110,7 +110,7 @@ func InitNotifyConfig(c *ctx.Context, tplDir string) {
 		}
 	}
 
-	// init notify contact
+	// init notify contact 初始化联系方式
 	cval, err = ConfigsGet(c, NOTIFYCONTACT)
 	if err != nil {
 		logger.Errorf("failed to get notify contact config: %v", err)
@@ -132,7 +132,7 @@ func InitNotifyConfig(c *ctx.Context, tplDir string) {
 		}
 	}
 
-	// init notify tpl
+	// init notify tpl 初始化通知模版
 	filenames, err := file.FilesUnder(tplDir)
 	if err != nil {
 		logger.Errorf("failed to get tpl files under %s", tplDir)
@@ -144,6 +144,7 @@ func InitNotifyConfig(c *ctx.Context, tplDir string) {
 		return
 	}
 
+	// 提取模版文件名和内容
 	tplMap := make(map[string]string)
 	for i := 0; i < len(filenames); i++ {
 		if strings.HasSuffix(filenames[i], ".tpl") {
@@ -164,7 +165,7 @@ func InitNotifyConfig(c *ctx.Context, tplDir string) {
 			Channel: channel,
 			Content: content,
 		}
-
+		// 模版内容保存到数据库
 		err := notifyTpl.CreateIfNotExists(c, channel)
 		if err != nil {
 			logger.Warningf("failed to create notify tpls %v", err)

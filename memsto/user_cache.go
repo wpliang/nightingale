@@ -30,6 +30,7 @@ func NewUserCache(ctx *ctx.Context, stats *Stats) *UserCacheType {
 		stats:           stats,
 		users:           make(map[int64]*models.User),
 	}
+	// 同步用户信息到缓存里
 	uc.SyncUsers()
 	return uc
 }
@@ -43,10 +44,12 @@ func (uc *UserCacheType) StatChanged(total, lastUpdated int64) bool {
 }
 
 func (uc *UserCacheType) Set(m map[int64]*models.User, total, lastUpdated int64) {
+	// 用户列表会被多个协程使用，加锁
 	uc.Lock()
 	uc.users = m
 	uc.Unlock()
 
+	// 这两个字段只有同步用户一个协程使用，无需加锁
 	// only one goroutine used, so no need lock
 	uc.statTotal = total
 	uc.statLastUpdated = lastUpdated
@@ -104,12 +107,14 @@ func (uc *UserCacheType) GetMaintainerUsers() []*models.User {
 }
 
 func (uc *UserCacheType) SyncUsers() {
+	// 创建缓存时，同步所有的用户
 	err := uc.syncUsers()
 	if err != nil {
 		fmt.Println("failed to sync users:", err)
 		exit(1)
 	}
 
+	// 开启协程，定时同步用户
 	go uc.loopSyncUsers()
 }
 
@@ -125,12 +130,13 @@ func (uc *UserCacheType) loopSyncUsers() {
 
 func (uc *UserCacheType) syncUsers() error {
 	start := time.Now()
-
+	// 获取用户的total和last_updated信息
 	stat, err := models.UserStatistics(uc.ctx)
 	if err != nil {
 		return errors.WithMessage(err, "failed to exec UserStatistics")
 	}
 
+	// 根据总行数和最后修改时间来判断是否修改过
 	if !uc.StatChanged(stat.Total, stat.LastUpdated) {
 		uc.stats.GaugeCronDuration.WithLabelValues("sync_users").Set(0)
 		uc.stats.GaugeSyncNumber.WithLabelValues("sync_users").Set(0)
@@ -139,6 +145,7 @@ func (uc *UserCacheType) syncUsers() error {
 		return nil
 	}
 
+	// 从数据库里查询出所有的用户
 	lst, err := models.UserGetAll(uc.ctx)
 	if err != nil {
 		return errors.WithMessage(err, "failed to exec UserGetAll")
@@ -148,7 +155,7 @@ func (uc *UserCacheType) syncUsers() error {
 	for i := 0; i < len(lst); i++ {
 		m[lst[i].Id] = lst[i]
 	}
-
+	// 保存到缓存里
 	uc.Set(m, stat.Total, stat.LastUpdated)
 
 	ms := time.Since(start).Milliseconds()

@@ -44,7 +44,7 @@ type User struct {
 	Portrait   string       `json:"portrait"`
 	Roles      string       `json:"-"`              // 这个字段写入数据库
 	RolesLst   []string     `json:"roles" gorm:"-"` // 这个字段和前端交互
-	Contacts   ormx.JSONObj `json:"contacts"`       // 内容为 map[string]string 结构
+	Contacts   ormx.JSONObj `json:"contacts"`       // 内容为 map[string]string 结构，配置更多联系方式，如钉钉，企微
 	Maintainer int          `json:"maintainer"`     // 是否给管理员发消息 0:not send 1:send
 	CreateAt   int64        `json:"create_at"`
 	CreateBy   string       `json:"create_by"`
@@ -357,6 +357,7 @@ func UserGetAll(ctx *ctx.Context) ([]*User, error) {
 	err := DB(ctx).Find(&lst).Error
 	if err == nil {
 		for i := 0; i < len(lst); i++ {
+			// 按空格分隔字符串
 			lst[i].RolesLst = strings.Fields(lst[i].Roles)
 			lst[i].Admin = lst[i].IsAdmin()
 		}

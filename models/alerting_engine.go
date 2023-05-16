@@ -7,6 +7,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 )
 
+// n9e服务实例，每个数据源对应的N9E服务，N9E可以通过配置文件的Alert.Heartbeat.EngineName来配置成不同的集群
 type AlertingEngines struct {
 	Id            int64  `json:"id" gorm:"primaryKey"`
 	Instance      string `json:"instance"`

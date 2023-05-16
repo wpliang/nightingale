@@ -20,7 +20,7 @@ type Datasource struct {
 	PluginType     string                 `json:"plugin_type"`      // prometheus
 	PluginTypeName string                 `json:"plugin_type_name"` // Prometheus Like
 	Category       string                 `json:"category"`         // timeseries
-	ClusterName    string                 `json:"cluster_name"`
+	ClusterName    string                 `json:"cluster_name"`     // 告警引擎集群就是AlertingEngines的EngineCluster
 	Settings       string                 `json:"-" gorm:"settings"`
 	SettingsJson   map[string]interface{} `json:"settings" gorm:"-"`
 	Status         string                 `json:"status"`

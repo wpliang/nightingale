@@ -44,6 +44,7 @@ func InitSalt(ctx *ctx.Context) {
 
 func ConfigsGet(ctx *ctx.Context, ckey string) (string, error) {
 	var lst []string
+	// Pluck 用于从数据库查询单个列，并将结果扫描到切片
 	err := DB(ctx).Model(&Configs{}).Where("ckey=?", ckey).Pluck("cval", &lst).Error
 	if err != nil {
 		return "", errors.WithMessage(err, "failed to query configs")
