@@ -65,6 +65,7 @@ func (arw *AlertRuleWorker) Prepare() {
 
 func (arw *AlertRuleWorker) Start() {
 	logger.Infof("eval:%s started", arw.Key())
+	// 执行频率
 	interval := arw.rule.PromEvalInterval
 	if interval <= 0 {
 		interval = 10
@@ -93,6 +94,9 @@ func (arw *AlertRuleWorker) Eval() {
 	var lst []common.AnomalyPoint
 	switch typ {
 	case models.PROMETHEUS:
+		// 根据query条件查询指标数据
+		// 如果能查询出来说明是个监控异常点
+		// 返回数组，原因是一个规则里可以有多个告警条件
 		lst = arw.GetPromAnomalyPoint(cachedRule.RuleConfig)
 	case models.HOST:
 		lst = arw.GetHostAnomalyPoint(cachedRule.RuleConfig)
@@ -104,7 +108,7 @@ func (arw *AlertRuleWorker) Eval() {
 		logger.Warningf("rule_eval:%s processor is nil", arw.Key())
 		return
 	}
-
+	// 交给规则处理器处理
 	arw.processor.Handle(lst, "inner", arw.inhibit)
 }
 
@@ -127,9 +131,10 @@ func (arw *AlertRuleWorker) GetPromAnomalyPoint(ruleConfig string) []common.Anom
 		logger.Errorf("rule_eval:%s rule_config:%s, error:rule is nil", arw.Key(), ruleConfig)
 		return lst
 	}
-
+	// 级别抑制，多个告警条件是否进行级别抑制
 	arw.inhibit = rule.Inhibit
 	for _, query := range rule.Queries {
+		// TODO ？？？
 		if query.Severity < severity {
 			arw.severity = query.Severity
 		}
@@ -144,9 +149,9 @@ func (arw *AlertRuleWorker) GetPromAnomalyPoint(ruleConfig string) []common.Anom
 			logger.Errorf("rule_eval:%s error reader client is nil", arw.Key())
 			continue
 		}
-
+		// 获取数据源的客户端
 		readerClient := arw.promClients.GetCli(arw.datasourceId)
-
+		// 根据查询语句查询当前时间的指标数据
 		var warnings promsdk.Warnings
 		value, warnings, err := readerClient.Query(context.Background(), promql, time.Now())
 		if err != nil {
@@ -160,8 +165,10 @@ func (arw *AlertRuleWorker) GetPromAnomalyPoint(ruleConfig string) []common.Anom
 		}
 
 		logger.Debugf("rule_eval:%s query:%+v, value:%v", arw.Key(), query, value)
+		// 数据转化
 		points := common.ConvertAnomalyPoints(value)
 		for i := 0; i < len(points); i++ {
+			// 告警级别设置
 			points[i].Severity = query.Severity
 		}
 		lst = append(lst, points...)

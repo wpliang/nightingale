@@ -88,8 +88,12 @@ func (s *Scheduler) syncAlertRules() {
 			continue
 		}
 		if rule.IsPrometheusRule() {
+			// 获取有效的数据源，规则里可以设置关联数据源，如果是all，则需把所有数据源找出来
 			datasourceIds := s.promClients.Hit(rule.DatasourceIdsJson)
 			for _, dsId := range datasourceIds {
+				// 根据规则ID来判断当前N9E服务是否要处理当前规则
+				// 会根据规则ID的HASH值来选择N9E服务，不同的规则会被不同的N9E服务处理，从而达到多个N9E服务来处理不同的规则，且不会重复处理
+				// 注意：dsId=0没有实际N9E服务，这里会被跳过
 				if !naming.DatasourceHashRing.IsHit(dsId, fmt.Sprintf("%d", rule.Id), s.aconf.Heartbeat.Endpoint) {
 					continue
 				}
@@ -103,8 +107,9 @@ func (s *Scheduler) syncAlertRules() {
 					logger.Debugf("datasource %d status is %s", dsId, ds.Status)
 					continue
 				}
+				// 初始化一个规则处理器，给下面的执行者调用的
 				processor := process.NewProcessor(rule, dsId, s.alertRuleCache, s.targetCache, s.busiGroupCache, s.alertMuteCache, s.datasourceCache, s.promClients, s.ctx, s.stats)
-
+				// 初始化规则的执行者
 				alertRule := NewAlertRuleWorker(rule, dsId, processor, s.promClients, s.ctx)
 				alertRuleWorkers[alertRule.Hash()] = alertRule
 			}
@@ -136,14 +141,18 @@ func (s *Scheduler) syncAlertRules() {
 		}
 	}
 
+	// 如果当前规则之前没开始过，则开始处理
 	for hash, rule := range alertRuleWorkers {
 		if _, has := s.alertRules[hash]; !has {
+			// 把规则的活跃告警事件载入
 			rule.Prepare()
+			// 开始执行规则
 			rule.Start()
 			s.alertRules[hash] = rule
 		}
 	}
 
+	// 如果当前规则之前有，现在没有了，则停止处理
 	for hash, rule := range s.alertRules {
 		if _, has := alertRuleWorkers[hash]; !has {
 			rule.Stop()

@@ -103,7 +103,7 @@ func NewProcessor(rule *models.AlertRule, datasourceId int64, atertRuleCache *me
 		ctx:         ctx,
 		stats:       stats,
 	}
-
+	//处理业务组，获取业务组名
 	p.mayHandleGroup()
 	return p
 }
@@ -112,7 +112,7 @@ func (p *Processor) Handle(anomalyPoints []common.AnomalyPoint, from string, inh
 	// 有可能rule的一些配置已经发生变化，比如告警接收人、callbacks等
 	// 这些信息的修改是不会引起worker restart的，但是确实会影响告警处理逻辑
 	// 所以，这里直接从memsto.AlertRuleCache中获取并覆盖
-	p.inhibit = inhibit
+	p.inhibit = inhibit // 告警抑制传递
 	p.rule = p.atertRuleCache.Get(p.rule.Id)
 	cachedRule := p.rule
 	if cachedRule == nil {
@@ -139,9 +139,10 @@ func (p *Processor) Handle(anomalyPoints []common.AnomalyPoint, from string, inh
 	}
 
 	for _, events := range eventsMap {
+		// 处理事件
 		p.handleEvent(events)
 	}
-
+	// 处理恢复告警
 	p.HandleRecover(alertingKeys, now)
 }
 
@@ -176,15 +177,18 @@ func (p *Processor) BuildEvent(anomalyPoint common.AnomalyPoint, from string, no
 	event.RuleConfigJson = p.rule.RuleConfigJson
 	event.Severity = anomalyPoint.Severity
 
+	// 内部判断
 	if from == "inner" {
 		event.LastEvalTime = now
 	} else {
+		// http请求进来的
 		event.LastEvalTime = event.TriggerTime
 	}
 	return event
 }
 
 func (p *Processor) HandleRecover(alertingKeys map[string]struct{}, now int64) {
+	// 从pending列表中移除正在告警的事件
 	for _, hash := range p.pendings.Keys() {
 		if _, has := alertingKeys[hash]; has {
 			continue
@@ -192,6 +196,7 @@ func (p *Processor) HandleRecover(alertingKeys map[string]struct{}, now int64) {
 		p.pendings.Delete(hash)
 	}
 
+	// 如果以前fires里面的事件不在本次查询出来的alerting事件中， 说明恢复了
 	for hash := range p.fires.GetAll() {
 		if _, has := alertingKeys[hash]; has {
 			continue
@@ -205,6 +210,7 @@ func (p *Processor) RecoverSingle(hash string, now int64, value *string) {
 	if cachedRule == nil {
 		return
 	}
+	// 二次确认
 	event, has := p.fires.Get(hash)
 	if !has {
 		return
@@ -239,26 +245,34 @@ func (p *Processor) handleEvent(events []*models.AlertCurEvent) {
 		if event == nil {
 			continue
 		}
+		// 如果持续时长为0，则立马告警
 		if p.rule.PromForDuration == 0 {
+			// 添加到fire告警列表中
 			fireEvents = append(fireEvents, event)
+			// severity越低，越严重， 取出最低的
 			if severity > event.Severity {
 				severity = event.Severity
 			}
 			continue
 		}
-
+		// 首先把事件保存到pending列表中，后面正在fire了，会从pending列表中移除
+		// 上一次的触发时间， 保存在pendings中
 		var preTriggerTime int64
 		preEvent, has := p.pendings.Get(event.Hash)
 		if has {
+			// 更新LastEvalTime
 			p.pendings.UpdateLastEvalTime(event.Hash, event.LastEvalTime)
 			preTriggerTime = preEvent.TriggerTime
 		} else {
+			// 不存在时，保存
 			p.pendings.Set(event.Hash, event)
 			preTriggerTime = event.TriggerTime
 		}
-
+		// 两次告警间隔 + 执行频率 >= 持续时长
 		if event.LastEvalTime-preTriggerTime+int64(event.PromEvalInterval) >= int64(p.rule.PromForDuration) {
+			// 添加到fire告警列表中
 			fireEvents = append(fireEvents, event)
+			// severity越低，越严重， 取出最低的
 			if severity > event.Severity {
 				severity = event.Severity
 			}
@@ -271,6 +285,7 @@ func (p *Processor) handleEvent(events []*models.AlertCurEvent) {
 
 func (p *Processor) inhibitEvent(events []*models.AlertCurEvent, highSeverity int) {
 	for _, event := range events {
+		// 如果开启抑制，排除低优先级的
 		if p.inhibit && event.Severity > highSeverity {
 			logger.Debugf("rule_eval:%s event:%+v inhibit highSeverity:%d", p.Key(), event, highSeverity)
 			continue
@@ -287,8 +302,10 @@ func (p *Processor) fireEvent(event *models.AlertCurEvent) {
 	}
 	logger.Debugf("rule_eval:%s event:%+v fire", p.Key(), event)
 	if fired, has := p.fires.Get(event.Hash); has {
+		// 更新LastEvalTime
 		p.fires.UpdateLastEvalTime(event.Hash, event.LastEvalTime)
 
+		// 如果重复通知间隔为0，则不重复发送了
 		if cachedRule.NotifyRepeatStep == 0 {
 			logger.Debugf("rule_eval:%s event:%+v repeat is zero nothing to do", p.Key(), event)
 			// 说明不想重复通知，那就直接返回了，nothing to do
@@ -297,7 +314,9 @@ func (p *Processor) fireEvent(event *models.AlertCurEvent) {
 		}
 
 		// 之前发送过告警了，这次是否要继续发送，要看是否过了通道静默时间
+		// 这次评估时间 > 上次发送时间 + 重复通知间隔
 		if event.LastEvalTime > fired.LastSentTime+int64(cachedRule.NotifyRepeatStep)*60 {
+			// 如果最大发送次数为0，则不限制发送次数
 			if cachedRule.NotifyMaxNumber == 0 {
 				// 最大可以发送次数如果是0，表示不想限制最大发送次数，一直发即可
 				event.NotifyCurNumber = fired.NotifyCurNumber + 1
@@ -322,14 +341,17 @@ func (p *Processor) fireEvent(event *models.AlertCurEvent) {
 	}
 }
 
+// 推送告警事件到队列中，等待下一步处理
 func (p *Processor) pushEventToQueue(e *models.AlertCurEvent) {
+	// 如果非恢复事件， 需要更新上次的发送事件
 	if !e.IsRecovered {
 		e.LastSentTime = e.LastEvalTime
 		p.fires.Set(e.Hash, e)
 	}
 
-	p.stats.CounterAlertsTotal.WithLabelValues(fmt.Sprintf("%d", e.DatasourceId)).Inc()
-	dispatch.LogEvent(e, "push_queue")
+	p.stats.CounterAlertsTotal.WithLabelValues(fmt.Sprintf("%d", e.DatasourceId)).Inc() //统计数据
+	dispatch.LogEvent(e, "push_queue")                                                  //打日志
+	// 推送到事件队列中
 	if !queue.EventQueue.PushFront(e) {
 		logger.Warningf("event_push_queue: queue is full, event:%+v", e)
 	}

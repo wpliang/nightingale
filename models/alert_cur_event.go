@@ -28,13 +28,13 @@ type AlertCurEvent struct {
 	RuleProd           string            `json:"rule_prod"`
 	RuleAlgo           string            `json:"rule_algo"`
 	Severity           int               `json:"severity"`
-	PromForDuration    int               `json:"prom_for_duration"`
+	PromForDuration    int               `json:"prom_for_duration"` //持续时长
 	PromQl             string            `json:"prom_ql"`
 	RuleConfig         string            `json:"-" gorm:"rule_config"` // rule config
 	RuleConfigJson     interface{}       `json:"rule_config" gorm:"-"` // rule config for fe
-	PromEvalInterval   int               `json:"prom_eval_interval"`
-	Callbacks          string            `json:"-"`                  // for db
-	CallbacksJSON      []string          `json:"callbacks" gorm:"-"` // for fe
+	PromEvalInterval   int               `json:"prom_eval_interval"`   // 执行频率
+	Callbacks          string            `json:"-"`                    // for db
+	CallbacksJSON      []string          `json:"callbacks" gorm:"-"`   // for fe
 	RunbookUrl         string            `json:"runbook_url"`
 	NotifyRecovered    int               `json:"notify_recovered"`
 	NotifyChannels     string            `json:"-"`                          // for db

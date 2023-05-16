@@ -27,10 +27,10 @@ type AlertRule struct {
 	Cate                  string            `json:"cate"`                          // alert rule cate (prometheus|elasticsearch)
 	DatasourceIds         string            `json:"-" gorm:"datasource_ids"`       // datasource ids
 	DatasourceIdsJson     []int64           `json:"datasource_ids" gorm:"-"`       // for fe
-	Cluster               string            `json:"cluster"`                       // take effect by clusters, seperated by space
+	Cluster               string            `json:"cluster"`                       // take effect by clusters, seperated by space 应该是老版本字段，新版本哟过DatasourceIds
 	Name                  string            `json:"name"`                          // rule name
 	Note                  string            `json:"note"`                          // will sent in notify
-	Prod                  string            `json:"prod"`                          // product empty means n9e
+	Prod                  string            `json:"prod"`                          // product empty means n9e 规则的类型：metric ｜ host
 	Algorithm             string            `json:"algorithm"`                     // algorithm (''|holtwinters), empty means threshold
 	AlgoParams            string            `json:"-" gorm:"algo_params"`          // params algorithm need
 	AlgoParamsJson        interface{}       `json:"algo_params" gorm:"-"`          // for fe
@@ -59,9 +59,9 @@ type AlertRule struct {
 	NotifyGroups          string            `json:"-"`                             // split by space: 233 43
 	NotifyGroupsObj       []UserGroup       `json:"notify_groups_obj" gorm:"-"`    // for fe
 	NotifyGroupsJSON      []string          `json:"notify_groups" gorm:"-"`        // for fe
-	NotifyRepeatStep      int               `json:"notify_repeat_step"`            // notify repeat interval, unit: min
-	NotifyMaxNumber       int               `json:"notify_max_number"`             // notify: max number
-	RecoverDuration       int64             `json:"recover_duration"`              // unit: s
+	NotifyRepeatStep      int               `json:"notify_repeat_step"`            // notify repeat interval, unit: min 重复通知间隔
+	NotifyMaxNumber       int               `json:"notify_max_number"`             // notify: max number 最大发送次数
+	RecoverDuration       int64             `json:"recover_duration"`              // unit: s  留观时长
 	Callbacks             string            `json:"-"`                             // split by space: http://a.com/api/x http://a.com/api/y'
 	CallbacksJSON         []string          `json:"callbacks" gorm:"-"`            // for fe
 	RunbookUrl            string            `json:"runbook_url"`                   // sop url

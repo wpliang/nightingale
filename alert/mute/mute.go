@@ -13,18 +13,19 @@ import (
 )
 
 func IsMuted(rule *models.AlertRule, event *models.AlertCurEvent, targetCache *memsto.TargetCacheType, alertMuteCache *memsto.AlertMuteCacheType) bool {
+	// 根据生效时间屏蔽
 	if TimeNonEffectiveMuteStrategy(rule, event) {
 		return true
 	}
-
+	// 根据ident是否存在过滤
 	if IdentNotExistsMuteStrategy(rule, event, targetCache) {
 		return true
 	}
-
+	// 根据业务组屏蔽，非业务组内的机器将被排除
 	if BgNotMatchMuteStrategy(rule, event, targetCache) {
 		return true
 	}
-
+	// 根据屏蔽规则过滤
 	if EventMuteStrategy(event, alertMuteCache) {
 		return true
 	}
