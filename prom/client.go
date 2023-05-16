@@ -69,6 +69,7 @@ func (pc *PromClientMap) Hit(datasourceIds []int64) []int64 {
 	pc.RLock()
 	defer pc.RUnlock()
 	dsIds := make([]int64, 0, len(pc.ReaderClients))
+	// 如果数据源是$all,则找出所有的数据源
 	if len(datasourceIds) == 1 && datasourceIds[0] == models.DatasourceIdAll {
 		for c := range pc.ReaderClients {
 			datasourceIds = append(datasourceIds, c)

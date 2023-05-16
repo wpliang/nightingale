@@ -131,7 +131,7 @@ type WritersType struct {
 type IdentQueue struct {
 	list    *SafeListLimited
 	closeCh chan struct{}
-	ts      int64
+	ts      int64 // 最新的时间
 }
 
 func NewWriters(pushgwConfig pconf.Pushgw) *WritersType {
@@ -141,8 +141,9 @@ func NewWriters(pushgwConfig pconf.Pushgw) *WritersType {
 		pushgw:   pushgwConfig,
 		sema:     semaphore.NewSemaphore(pushgwConfig.WriteConcurrency),
 	}
-
+	// 初始化prometheus客户端 和 backends
 	writers.Init()
+	// 定时删除过期的queues
 	go writers.CleanExpQueue()
 	return writers
 }
@@ -177,6 +178,7 @@ func (ws *WritersType) PushSample(ident string, v interface{}) {
 	identQueue := ws.queues[ident]
 	ws.RUnlock()
 	if identQueue == nil {
+		// 延迟初始化队列
 		identQueue = &IdentQueue{
 			list:    NewSafeListLimited(ws.pushgw.WriterOpt.QueueMaxSize),
 			closeCh: make(chan struct{}),
@@ -186,7 +188,7 @@ func (ws *WritersType) PushSample(ident string, v interface{}) {
 		ws.Lock()
 		ws.queues[ident] = identQueue
 		ws.Unlock()
-
+		// 启动消费任务
 		go ws.StartConsumer(identQueue)
 	}
 

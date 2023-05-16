@@ -50,6 +50,7 @@ func (rrc *RecordRuleContext) Prepare() {}
 
 func (rrc *RecordRuleContext) Start() {
 	logger.Infof("eval:%s started", rrc.Key())
+	// 执行频率
 	interval := rrc.rule.PromEvalInterval
 	if interval <= 0 {
 		interval = 10
@@ -78,7 +79,7 @@ func (rrc *RecordRuleContext) Eval() {
 		logger.Errorf("eval:%s reader client is nil", rrc.Key())
 		return
 	}
-
+	// 从当前数据源查询指标数据
 	value, warnings, err := rrc.promClients.GetCli(rrc.datasourceId).Query(context.Background(), promql, time.Now())
 	if err != nil {
 		logger.Errorf("eval:%s promql:%s, error:%v", rrc.Key(), promql, err)
@@ -89,9 +90,10 @@ func (rrc *RecordRuleContext) Eval() {
 		logger.Errorf("eval:%s promql:%s, warnings:%v", rrc.Key(), promql, warnings)
 		return
 	}
-
+	// 指标数据转化成时间序列
 	ts := ConvertToTimeSeries(value, rrc.rule)
 	if len(ts) != 0 {
+		// 往当前数据源发送
 		rrc.promClients.GetWriterCli(rrc.datasourceId).Write(ts)
 	}
 }
