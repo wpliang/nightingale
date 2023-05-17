@@ -101,12 +101,18 @@ func Start(alertc aconf.Alert, pushgwc pconf.Pushgw, syncStats *memsto.Stats, al
 	// 告警规则处理调度器
 	eval.NewScheduler(isCenter, alertc, externalProcessors, alertRuleCache, targetCache, busiGroupCache, alertMuteCache, datasourceCache, promClients, naming, ctx, alertStats)
 
+	// 初始化一个通知分发实例
 	dp := dispatch.NewDispatch(alertRuleCache, userCache, userGroupCache, alertSubscribeCache, targetCache, notifyConfigCache, alertc.Alerting, ctx)
+	// 初始化一个告警消费实例
 	consumer := dispatch.NewConsumer(alertc.Alerting, ctx, dp)
 
+	// 加载通知模版 和 初始化通知发送者
 	go dp.ReloadTpls()
+	// 消费告警列表
 	go consumer.LoopConsume()
 
+	// EventQueue长度的指标信息
 	go queue.ReportQueueSize(alertStats)
+	// 初始化一个邮件发送实例
 	go sender.StartEmailSender(notifyConfigCache.GetSMTP()) // todo
 }

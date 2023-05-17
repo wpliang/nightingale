@@ -123,7 +123,9 @@ EngineName = "default"
 TemplatesDir = "/Users/wpliang/private/code/nightingale/etc/template"
 
 [Center]
-MetricsYamlFile = "../etc/metrics.yaml"
+# MetricsYamlFile = "../etc/metrics.yaml"
+MetricsYamlFile = "/Users/wpliang/private/code/nightingale/etc/metrics.yaml"
+OpsYamlFile =  "/Users/wpliang/private/code/nightingale/etc/ops.yaml"
 I18NHeaderKey = "X-Language"
 
 [Center.AnonymousAccess]

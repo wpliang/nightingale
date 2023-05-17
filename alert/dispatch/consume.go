@@ -30,6 +30,7 @@ func NewConsumer(alerting aconf.Alerting, ctx *ctx.Context, dispatch *Dispatch) 
 }
 
 func (e *Consumer) LoopConsume() {
+	// 并发控制
 	sema := semaphore.NewSemaphore(e.alerting.NotifyConcurrency)
 	duration := time.Duration(100) * time.Millisecond
 	for {
@@ -60,6 +61,7 @@ func (e *Consumer) consume(events []interface{}, sema *semaphore.Semaphore) {
 func (e *Consumer) consumeOne(event *models.AlertCurEvent) {
 	LogEvent(event, "consume")
 
+	// TODO ？？
 	if err := event.ParseRule("rule_name"); err != nil {
 		event.RuleName = fmt.Sprintf("failed to parse rule name: %v", err)
 	}
@@ -72,12 +74,14 @@ func (e *Consumer) consumeOne(event *models.AlertCurEvent) {
 		event.Annotations = fmt.Sprintf("failed to parse rule note: %v", err)
 	}
 
+	// 持久化到数据库
 	e.persist(event)
 
+	// 恢复通知但没有开启恢复通知
 	if event.IsRecovered && event.NotifyRecovered == 0 {
 		return
 	}
-
+	// 真正的处理事件通知
 	e.dispatch.HandleEventNotify(event, false)
 }
 

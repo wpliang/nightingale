@@ -28,19 +28,23 @@ import (
 )
 
 func Initialize(configDir string, cryptoKey string) (func(), error) {
+	// 初始化配置文件
 	config, err := conf.InitConfig(configDir, cryptoKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init config: %v", err)
 	}
 
+	// 加载指标的说明
 	cconf.LoadMetricsYaml(config.Center.MetricsYamlFile)
+	// 加载菜单信息
 	cconf.LoadOpsYaml(config.Center.OpsYamlFile)
-
+	// 初始化日志配置
 	logxClean, err := logx.Init(config.Log)
 	if err != nil {
 		return nil, err
 	}
 
+	// 初始化国际化错误提示
 	i18nx.Init()
 
 	db, err := storage.New(config.DB)

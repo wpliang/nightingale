@@ -104,6 +104,7 @@ func (e *Dispatch) HandleEventNotify(event *models.AlertCurEvent, isSubscribe bo
 	if rule == nil {
 		return
 	}
+	// 把group_id和user_id填充成组对象和用户对象
 	fillUsers(event, e.userCache, e.userGroupCache)
 
 	var (
@@ -114,12 +115,14 @@ func (e *Dispatch) HandleEventNotify(event *models.AlertCurEvent, isSubscribe bo
 		// 如果实现了相关 Dispatch,可以添加到interceptors中
 		interceptorHandlers []NotifyTargetDispatch
 	)
+	// 订阅只有两种，新通知媒介，新回调地址
 	if isSubscribe {
 		handlers = []NotifyTargetDispatch{NotifyGroupDispatch, EventCallbacksDispatch}
 	} else {
 		handlers = []NotifyTargetDispatch{NotifyGroupDispatch, GlobalWebhookDispatch, EventCallbacksDispatch}
 	}
 
+	// 下面逻辑是取出通知对象，用户组里的用户，webhook地址，回调地址
 	notifyTarget := NewNotifyTarget()
 	// 处理订阅关系使用OrMerge
 	for _, handler := range handlers {
@@ -168,6 +171,7 @@ func (e *Dispatch) handleSub(sub *models.AlertSubscribe, event models.AlertCurEv
 	if sub.ForDuration > (event.TriggerTime - event.FirstTriggerTime) {
 		return
 	}
+	// 订阅可以覆盖规则的一些配置
 	sub.ModifyEvent(&event)
 	LogEvent(&event, "subscribe")
 	e.HandleEventNotify(&event, true)
