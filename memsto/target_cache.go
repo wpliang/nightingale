@@ -144,8 +144,9 @@ func (tc *TargetCacheType) syncTargets() error {
 		return errors.WithMessage(err, "failed to call TargetGetsAll")
 	}
 
+	// 从Redis获取心跳发送来的主机信息
 	metaMap := tc.GetHostMetas(lst)
-
+	// 合并主机信息到Target中
 	m := make(map[string]*models.Target)
 	for i := 0; i < len(lst); i++ {
 		lst[i].FillTagsMap()

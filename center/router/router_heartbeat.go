@@ -12,6 +12,7 @@ import (
 	"github.com/toolkits/pkg/ginx"
 )
 
+// categraf 发送心跳接口
 func (rt *Router) heartbeat(c *gin.Context) {
 	var bs []byte
 	var err error

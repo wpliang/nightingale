@@ -80,6 +80,7 @@ func (pc *PromClientMap) loadFromDatabase() {
 		newCluster[dsId] = struct{}{}
 		if pc.IsNil(dsId) {
 			// first time
+			// 初始化Prom读写客户端
 			if err = pc.setClientFromPromOption(dsId, po); err != nil {
 				logger.Errorf("failed to setClientFromPromOption: %v", err)
 				continue
@@ -92,6 +93,7 @@ func (pc *PromClientMap) loadFromDatabase() {
 
 		localPo, has := PromOptions.Get(dsId)
 		if !has || !localPo.Equal(po) {
+			// 初始化Prom读写客户端
 			if err = pc.setClientFromPromOption(dsId, po); err != nil {
 				logger.Errorf("failed to setClientFromPromOption: %v", err)
 				continue
@@ -105,7 +107,9 @@ func (pc *PromClientMap) loadFromDatabase() {
 	oldIds := pc.GetDatasourceIds()
 	for _, oldId := range oldIds {
 		if _, has := newCluster[oldId]; !has {
+			// 删除read客户端，为啥WriterClients不删除？
 			pc.Del(oldId)
+			// 删除Prom配置
 			PromOptions.Del(oldId)
 			logger.Info("delete cluster: ", oldId)
 		}

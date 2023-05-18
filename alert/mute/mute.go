@@ -48,16 +48,22 @@ func TimeNonEffectiveMuteStrategy(rule *models.AlertRule, event *models.AlertCur
 	enableDaysOfWeek := strings.Split(rule.EnableDaysOfWeek, ";")
 	length := len(enableDaysOfWeek)
 	// enableStime,enableEtime,enableDaysOfWeek三者长度肯定相同，这里循环一个即可
+	// 一个规则可以配置多个生效时间，只要有一个生效时间匹配，就不沉默
 	for i := 0; i < length; i++ {
+
+		// 判断星期，如果不匹配，则需要沉默
 		enableDaysOfWeek[i] = strings.Replace(enableDaysOfWeek[i], "7", "0", 1)
 		if !strings.Contains(enableDaysOfWeek[i], triggerWeek) {
 			continue
 		}
+		// 判断时间
 		if enableStime[i] <= enableEtime[i] {
+			// 开始结束时间在一天内， 判断当前时间是否在范围内，如果不在范围内，则需要沉默
 			if triggerTime < enableStime[i] || triggerTime > enableEtime[i] {
 				continue
 			}
 		} else {
+			// 开始结束时间跨天了， 判断当前时间是否在范围外，如果不在范围外，则需要沉默
 			if triggerTime < enableStime[i] && triggerTime > enableEtime[i] {
 				continue
 			}

@@ -81,6 +81,7 @@ func (s *Set) updateTimestamp(items map[string]struct{}) {
 	}
 }
 
+// 已存在的更新时间，不存在的插入
 func (s *Set) updateTargets(lst []string, now int64) error {
 	count := int64(len(lst))
 	if count == 0 {

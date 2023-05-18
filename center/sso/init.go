@@ -93,6 +93,8 @@ Phone = 'phone_number'
 Email = 'email'
 `
 
+// 初始化单点登录的默认配置，后面页面可以修改， 并封装成各自的client
+// TODO  这里好像有个问题，页面修改后需要重启才能生效？
 func Init(center cconf.Center, ctx *ctx.Context) *SsoClient {
 	ssoClient := new(SsoClient)
 	m := make(map[string]string)
@@ -101,6 +103,7 @@ func Init(center cconf.Center, ctx *ctx.Context) *SsoClient {
 	m["OIDC"] = OIDC
 	m["OAuth2"] = OAuth2
 
+	// 如果数据库里不存在，则插入默认配置
 	for name, config := range m {
 		count, err := models.SsoConfigCountByName(ctx, name)
 		if err != nil {
@@ -123,6 +126,7 @@ func Init(center cconf.Center, ctx *ctx.Context) *SsoClient {
 		}
 	}
 
+	// 加载sso配置初始化成client
 	configs, err := models.SsoConfigGets(ctx)
 	if err != nil {
 		log.Fatalln(err)

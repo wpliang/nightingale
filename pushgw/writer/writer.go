@@ -137,11 +137,13 @@ type IdentQueue struct {
 func NewWriters(pushgwConfig pconf.Pushgw) *WritersType {
 	writers := &WritersType{
 		backends: make(map[string]WriterType),
-		queues:   make(map[string]*IdentQueue),
-		pushgw:   pushgwConfig,
-		sema:     semaphore.NewSemaphore(pushgwConfig.WriteConcurrency),
+		// 这里的IdentQueue是延迟初始化的，在指标上报时，根据ident查看是否存在，如果不存在则创建，并开启消费协程
+		// 具体查看下面的PushSample方法
+		queues: make(map[string]*IdentQueue),
+		pushgw: pushgwConfig,
+		sema:   semaphore.NewSemaphore(pushgwConfig.WriteConcurrency),
 	}
-	// 初始化prometheus客户端 和 backends
+	// 初始化prometheus客户端 和 数据写入器writes
 	writers.Init()
 	// 定时删除过期的queues
 	go writers.CleanExpQueue()
@@ -192,6 +194,7 @@ func (ws *WritersType) PushSample(ident string, v interface{}) {
 		go ws.StartConsumer(identQueue)
 	}
 
+	// 设置接收时间，便于后面清理时判断
 	identQueue.ts = time.Now().Unix()
 	succ := identQueue.list.PushFront(v)
 	if !succ {

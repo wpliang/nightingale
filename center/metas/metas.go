@@ -52,6 +52,7 @@ func (s *Set) LoopPersist() {
 	}
 }
 
+// 把心跳数据保存到Redis中
 func (s *Set) persist() {
 	var items map[string]models.HostMeta
 

@@ -85,10 +85,12 @@ func (rt *Router) remoteWrite(c *gin.Context) {
 	)
 
 	for i := 0; i < count; i++ {
+		// 判断标签里是否有相同的标签名，有说明非法的，跳过
 		if duplicateLabelKey(req.Timeseries[i]) {
 			continue
 		}
 
+		// 从指标数据中解析出ident
 		ident = extractIdentFromTimeSeries(req.Timeseries[i])
 
 		// telegraf 上报数据的场景，只有在 metric 为 system_load1 时，说明指标来自机器，将 host 改为 ident，其他情况都忽略
@@ -106,10 +108,11 @@ func (rt *Router) remoteWrite(c *gin.Context) {
 				rt.AppendLabels(req.Timeseries[i], target, rt.BusiGroupCache)
 			}
 		}
-
+		// 充实标签，一个预留功能，可以在初始化Router的时候配置，目前是空方法
 		rt.EnrichLabels(req.Timeseries[i])
 		rt.debugSample(c.Request.RemoteAddr, req.Timeseries[i])
 
+		// 把指标发送到identQueue队列中等待消费
 		if rt.Pushgw.WriterOpt.ShardingKey == "ident" {
 			if ident == "" {
 				rt.Writers.PushSample("-", req.Timeseries[i])
@@ -122,6 +125,7 @@ func (rt *Router) remoteWrite(c *gin.Context) {
 	}
 
 	CounterSampleTotal.WithLabelValues("prometheus").Add(float64(count))
+	// 设置服务器信息，同步到数据库中
 	rt.IdentSet.MSet(ids)
 }
 
