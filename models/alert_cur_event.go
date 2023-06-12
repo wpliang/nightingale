@@ -72,6 +72,8 @@ type AggrRule struct {
 	Value string
 }
 
+// 定义两个变量 $labels， $value
+// 这样在rule_name， rule_note， annotations里面使用变量的地方就替换成真正的值了
 func (e *AlertCurEvent) ParseRule(field string) error {
 	f := e.GetField(field)
 	f = strings.TrimSpace(f)

@@ -94,6 +94,7 @@ func (n *Naming) heartbeat() error {
 		}
 	} else {
 		// 如果配置了数据源，为每个数据源设置告警引擎集群和N9E服务的关系
+		// 一个N9E服务可以通过配置文件n.heartbeatConfig.EngineName来配置自己属于哪个集群，相同的集群进行负载均衡执行告警规则
 		for i := 0; i < len(datasourceIds); i++ {
 			err := models.AlertingEngineHeartbeatWithCluster(n.ctx, n.heartbeatConfig.Endpoint, n.heartbeatConfig.EngineName, datasourceIds[i])
 			if err != nil {

@@ -38,6 +38,7 @@ func (rt *Router) heartbeat(c *gin.Context) {
 
 	req.Offset = (time.Now().UnixMilli() - req.UnixTime)
 	req.RemoteAddr = c.ClientIP()
+	// 心跳数据【主机信息】
 	rt.MetaSet.Set(req.Hostname, req)
 
 	gid := ginx.QueryInt64(c, "gid", 0)

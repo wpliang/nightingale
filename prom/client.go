@@ -96,6 +96,8 @@ func (pc *PromClientMap) Reset() {
 	pc.WriterClients = make(map[int64]prom.WriterType)
 }
 
+// 为什么不删除WriterClients?
+// https://github.com/ccfos/nightingale/issues/1537
 func (pc *PromClientMap) Del(datasourceId int64) {
 	pc.Lock()
 	defer pc.Unlock()

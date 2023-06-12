@@ -10,6 +10,7 @@ import (
 
 const NodeReplicas = 500
 
+// 一个数据源里面放了很多N9E服务
 type DatasourceHashRingType struct {
 	sync.RWMutex
 	Rings map[int64]*consistent.Consistent

@@ -94,7 +94,7 @@ func Start(alertc aconf.Alert, pushgwc pconf.Pushgw, syncStats *memsto.Stats, al
 	// 所有活跃的N9E服务都被保存到每个数据源的一致性HASH里了
 	naming := naming.NewNaming(ctx, alertc.Heartbeat, isCenter)
 
-	// 初始化指标写入器， 把接收到的指标发送给时序数据库
+	// 初始化指标写入器， 把下面记录规则生成的新指标发送给时序数据库
 	writers := writer.NewWriters(pushgwc)
 	// 生成新的指标的规则处理调度器
 	record.NewScheduler(alertc, recordingRuleCache, promClients, writers, alertStats)

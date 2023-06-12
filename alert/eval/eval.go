@@ -134,7 +134,7 @@ func (arw *AlertRuleWorker) GetPromAnomalyPoint(ruleConfig string) []common.Anom
 	// 级别抑制，多个告警条件是否进行级别抑制
 	arw.inhibit = rule.Inhibit
 	for _, query := range rule.Queries {
-		// TODO ？？？
+		// TODO 理论上这条件不会成立啊
 		if query.Severity < severity {
 			arw.severity = query.Severity
 		}
